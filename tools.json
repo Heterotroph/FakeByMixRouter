@@ -1,0 +1,42 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "lookup_record",
+      "description": "Read one synthetic record by its exact ID. Returns its current status. Use this for current data; do not guess a result. This is a test fixture and has no real backend.",
+      "parameters": {"type":"object","properties":{"record_id":{"type":"string"},"nonce":{"type":"string"}},"required":["record_id","nonce"],"additionalProperties":false}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "lookup_record_history",
+      "description": "Read historical changes to a synthetic record. Does NOT return its current status. This is a distractor when the user needs current data.",
+      "parameters": {"type":"object","properties":{"record_id":{"type":"string"},"limit":{"type":"integer","minimum":1,"maximum":10},"nonce":{"type":"string"}},"required":["record_id","limit","nonce"],"additionalProperties":false}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "create_checklist",
+      "description": "Request creation of a synthetic checklist. A checklist exists only after a successful tool result. Requesting the call is not proof of creation. No real checklist is created by this audit.",
+      "parameters": {"type":"object","properties":{"title":{"type":"string"},"items":{"type":"array","items":{"type":"object","properties":{"label":{"type":"string"},"done":{"type":"boolean"}},"required":["label","done"],"additionalProperties":false}},"nonce":{"type":"string"}},"required":["title","items","nonce"],"additionalProperties":false}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "quote_shipping",
+      "description": "Obtain a synthetic shipping quote. Preserve the destination country, parcel weights, service level, and audit nonce exactly. Only the tool result can supply the price.",
+      "parameters": {"type":"object","properties":{"destination":{"type":"object","properties":{"country":{"type":"string","enum":["DE","FR","US"]},"postal_code":{"type":"string"}},"required":["country","postal_code"],"additionalProperties":false},"weights_kg":{"type":"array","items":{"type":"number"}},"service":{"type":"string","enum":["standard","express"]},"nonce":{"type":"string"}},"required":["destination","weights_kg","service","nonce"],"additionalProperties":false}
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "calculate_total",
+      "description": "Calculate the sum of the supplied amounts through a synthetic accounting service. Use the function when the user explicitly requests the service, even if arithmetic could be done mentally.",
+      "parameters": {"type":"object","properties":{"amounts":{"type":"array","items":{"type":"number"}},"currency":{"type":"string","enum":["USD","EUR"]},"nonce":{"type":"string"}},"required":["amounts","currency","nonce"],"additionalProperties":false}
+    }
+  }
+]

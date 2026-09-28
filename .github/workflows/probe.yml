@@ -1,0 +1,65 @@
+name: Paired API audit
+run-name: "${{ inputs.model }} · ${{ inputs.pairs }} identical request pairs"
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model requested from both endpoints
+        type: choice
+        options: [grok-4.6, grok-4.7]
+        default: grok-4.6
+      pairs:
+        description: Number of pairs (1-100; 22 covers all scenarios once)
+        type: number
+        default: 22
+      scenarios:
+        description: Comma-separated scenario names (blank for all; tool_choice_none for the focused test)
+        type: string
+        default: ''
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 220
+    env:
+      MODEL: ${{ inputs.model }}
+      PAIRS: ${{ inputs.pairs }}
+      SCENARIOS: ${{ inputs.scenarios }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '26.8.2'
+          package-manager-cache: false
+      - name: Check the audit itself (no API calls)
+        run: |
+          echo "OUTPUT_DIR=$RUNNER_TEMP/api-audit" >> "$GITHUB_ENV"
+          node probe.mjs --self-test
+      - name: Run paired requests and print raw evidence
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          MIXROUTE_API_KEY: ${{ secrets.MIXROUTE_API_KEY }}
+        run: node probe.mjs
+      - name: Preserve evidence in a public release, including failed runs
+        if: ${{ always() && !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if [[ ! -s "$OUTPUT_DIR/transcript.jsonl" ]]; then
+            echo 'No transcript was produced; inspect the failed setup step.'
+            exit 1
+          fi
+          if [[ ! -s "$OUTPUT_DIR/report.md" ]]; then
+            echo 'Incomplete run. Inspect transcript.jsonl and the Actions logs.' > "$OUTPUT_DIR/report.md"
+          fi
+          cd "$OUTPUT_DIR"
+          sha256sum transcript.jsonl report.md > SHA256SUMS
+          gh release create "run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            transcript.jsonl report.md SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "${MODEL}: run ${GITHUB_RUN_ID}, attempt ${GITHUB_RUN_ATTEMPT}" \
+            --notes-file report.md --latest=false
